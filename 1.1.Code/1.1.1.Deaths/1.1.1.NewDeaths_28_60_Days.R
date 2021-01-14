@@ -108,14 +108,14 @@ en_deathsData_long$date <- as.Date(en_deathsData_long$date, format = "%Y-%m-%d")
 
 
 
-#### FIGURE 1 ####
+#### FIGURE 1a ####
 ## Bar chart of cummulative deaths over time ##
 
 # subset cummulative data
 cumData <- subset(en_deathsData_long, deathMeasurementType == "cumDeathsByDeathDate")
 
 # plot data with ggplot2 package
-cumPlot <- ggplot(data = cumData, aes(x = date, y = value, fill = deathMeasurementType, text = paste("Date:", date, "\nCummulative number of deaths:", value))) + 
+cumPlot <- ggplot(data = cumData, aes(x = date, y = value, fill = deathMeasurementType, text = paste("Date:", date, "\nNumber of deaths:", value))) + 
   geom_bar(position="dodge", stat="identity") +
   ggtitle("Cummulative Number of Deaths over Time") +
   labs(x=("Date of Deaths"), y=("Number of Deaths")) + 
@@ -130,7 +130,7 @@ print(cumPlot_Interactive)
 
 
 
-#### FIGURE 2 ####
+#### FIGURE 1b ####
 ## Bar chart of daily number of deaths over time ##
 
 # subset new daily data
@@ -152,7 +152,28 @@ print(newPlot_Interactive)
 
 
 
-#### FIGURE 3.1 ####
+
+#### FIGURE 2 ####
+## Bar plot of daily deaths and line plot of total (cummulated) deaths by date
+
+en_deathsData$date <- as.Date(en_deathsData$date, format = "%Y-%m-%d")
+
+cum_newPlot <- ggplot(data = en_deathsData, aes(x = date)) +
+  geom_bar(aes(y = newDeathsByDeathDate, fill = "#69b3a2"), stat = "identity", position = "dodge") +
+  geom_line(aes(y = cumDeathsByDeathDate / 75, color = "#e52b50")) +
+  scale_y_continuous(name = "Number of Daily Deaths", sec.axis = sec_axis(trans = ~.*75, name = "Number of Total Deaths")) +
+  labs(x=("Death Date")) +
+  ggtitle("Daily and Total Number of Deaths by Date") +
+  scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
+  theme(legend.position = "bottom", legend.box = "horizontal") +
+  scale_fill_manual(values = "#69b3a2", labels = "Daily Deaths") +
+  scale_colour_manual(values = "#e52b50", labels = "Total Deaths") +
+  theme(legend.title=element_blank(), plot.title = element_text(face = "bold"))
+
+print(cum_newPlot)
+
+
+#### FIGURE 3a ####
 ## Stacked barch chart (≤28, 29-60, ≥60 days), daily number ##
 # "Windows" data - Number of daily deaths grouped by length of time from testing positive until death (≤28, 29-60, ≥60 days) #
 
@@ -182,17 +203,18 @@ print(windowBarPlotInteractive)
 
 
 
-#### FIGURE 3.2 ####
+#### FIGURE 3b ####
 ## Stacked barch chart (≤28, 29-60, ≥60 days), PERCENTAGE ##
 # "Windows" data - Number of daily deaths grouped by length of time from testing positive until death (≤28, 29-60, ≥60 days) #
 
 # subset windows data
 windowData <- subset(en_deathsData_long, deathMeasurementType == "deathsWithin28days" | deathMeasurementType == "deathsBetween29to60days" | deathMeasurementType == "deathsAfter60days")
 
+
 # plot data with ggplot2 package
 windowBarPlot<- ggplot(windowData, aes(x = date, y = value, fill = deathMeasurementType, group = deathMeasurementType, text = paste(deathMeasurementType, "\n Date:", date, "\n Value:", value))) + 
   geom_bar(position="fill", stat="identity") +
-  ggtitle("Percentage of Daily deaths grouped by length of time from testing positive until death") +
+  ggtitle("Proportion of Daily Deaths Grouped by length of time from testing positive until death") +
   labs(x=("Date of Deaths"), y=("Number of Deaths")) + 
   scale_fill_discrete(name="\n Number of days \n after +ve Test",
                       breaks=c("deathsWithin28days", "deathsBetween29to60days", "deathsAfter60days"),
@@ -212,7 +234,61 @@ windowBarPlotInteractive$x$data[[3]]$name <- ">60 Days"
 print(windowBarPlotInteractive)
 
 
+
+
+#### FIGURE 4 ####
+## Bar chart showing the percentage of deaths grouped by the number of days between positive test and death date ##
+
+# subset windows data
+windowData <- subset(en_deathsData_long, deathMeasurementType == "deathsWithin28days" | deathMeasurementType == "deathsBetween29to60days" | deathMeasurementType == "deathsAfter60days")
+
+# creating list of death windows
+deathWindows <- c("deathsWithin28days", "deathsBetween29to60days", "deathsAfter60days")
+
+# creating data.frame with two columns (1: name of death windows, 2: percentage of deaths [empty])
+percentage_deathWindowsDF <- data.frame(matrix(nrow = 3, ncol = 2))
+percentage_deathWindowsDF[,1]<- deathWindows
+colnames(percentage_deathWindowsDF) <- c("deathMeasurementType", "percentage")
+
+
+# calculating percentage of deaths for each death window and putting results in data.frame
+for (deathWindow in 1:length(deathWindows)) {
+  
+  #deathWindow <- 1
+  deathWindowName <- deathWindows[deathWindow]
+  
+  # sum of specific window
+  deathWindowValues <- subset(windowData, windowData$deathMeasurementType == deathWindowName, select = value)
+  sum_deathWindowValues <- sum(deathWindowValues)
+  
+  # sum of all windows
+  other_deathWindowValues <- subset(windowData, windowData$deathMeasurementType != deathWindowName, select = value)
+  sum_other_deathWindowValues <- sum(other_deathWindowValues)
+  
+  sum_all_WindowValuesbyDate <- sum_deathWindowValues + sum_other_deathWindowValues
+  
+  # percentage of specific window
+  percentage_deathWindowValues <- (sum_deathWindowValues / sum_all_WindowValuesbyDate) * 100
+  percentage_deathWindowValues <- round(percentage_deathWindowValues, digits = 2)
+  
+  percentage_deathWindowsDF[deathWindow, 2] <- percentage_deathWindowValues
+  
+}
+
+# plotting the results
+percentage_totalDeathWindowsPlot <- ggplot(data = percentage_deathWindowsDF, aes(x = deathMeasurementType, y = percentage, fill = deathMeasurementType, text = paste("\n Percentage:", percentage))) +
+  geom_bar( stat="identity") +
+  scale_x_discrete(limits = c(deathWindows), breaks=c(deathWindows), labels=c("≤28", "29 to 60", "60+")) +
+  labs(x = "Number of Days Between Positive Test and Death Date", y = "Percentage of Deaths") +
+  ggtitle("Percentage of Deaths by Number of Days between Positive Test and Death Date") + 
+  theme(legend.position = "none", plot.title = element_text(face = "bold"), axis.title = element_text(face = "bold") )
+
+percentage_totalDeathWindowsPlot_Interactive <- ggplotly(percentage_totalDeathWindowsPlot, tooltip = "text")
+
+print(percentage_totalDeathWindowsPlot_Interactive)
+
+
+
 # TODO: 
-# 1) add percentage values in the hover box (create a function?)
-# 2) add code for FIGURE 4: Pie chart
-# 3) maybe think about organising them all into one document?
+# 1) match the colour schemes of all figures
+# 2) think about organising all figures into one document?
