@@ -79,7 +79,6 @@ library(grid)
 ## cumDeathsByDeathDate: cummulative number of people who died within unlimited number of days after testing postive (within 60+ days)
 
 en_deathsData <- read.csv("https://api.coronavirus.data.gov.uk/v2/data?areaType=nation&areaCode=E92000001&metric=cumDeaths28DaysByDeathDate&metric=cumDeaths60DaysByDeathDate&metric=newDeathsByDeathDate&metric=cumDeathsByDeathDate&format=csv")
-ncol(en_deathsData)
 
 
 #____________________________________________________________________________________________________________________________
