@@ -342,7 +342,7 @@ print(percentage_totalDeathWindowsPlot_Interactive)
 #### FIGURE 5 ####
 ## Multiple graphs in one plot (side-by-side) ; figures 2, 3a, 3b, and 4 ##
 
-combinedPlot <- grid.arrange(cum_newPlot, windowBarPlot, percentage_totalDeathWindowsPlot, percentage_windowBarPlot, top = textGrob("COVID-19 Deaths Graphs", ))
+combinedPlot <- grid.arrange(cum_newPlot, windowBarPlot, percentage_totalDeathWindowsPlot, proportion_windowBarPlot, top = textGrob("COVID-19 Deaths Graphs", ))
 
 print(combinedPlot)
 
