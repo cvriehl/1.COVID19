@@ -1,7 +1,37 @@
 
 #________________________________________________________ 1.1 DEATHS ________________________________________________________ 
 
+
+
 #___________________________________ 1.11 NEW DEATHS WITHIN 28 DAYS & 60 DAYS OF +VE TEST____________________________________
+
+
+
+
+#____________________________________________________________________________________________________________________________
+#### SCRIPT EXPLANATION ####
+# This script takes data provided by the UK government (section 1), and manipulates it (sections 2-5) in order to visualise COVID-19 Death data (section 6)
+
+# A] How to run the script:
+# Code MUST be run from sections 1 to 5 
+# Code for figures 1a, 1b, 2, 3a, 3b, 4 (section 6) can then be run separately
+# Figure 5 contains multiple graphs in one plot (figures 2, 3a, 3b, and 4), so the code of each of those figures need to be run first
+
+# B] Figures Content Guide
+# Figure 1a: Bar chart of cummulative deaths over time
+# Figure 1b: Bar chart of daily number of deaths over time
+# Figure 2: Bar plot of daily deaths and line plot of total (cummulated) deaths by date
+# Figure 3a: Stacked barch chart of NUMBER of daily deaths grouped by length of time from testing positive until death (≤28, 29-60, >60 days)
+# Figure 3b: Stacked barch chart of PROPORTION of daily deaths grouped by length of time from testing positive until death (≤28, 29-60, >60 days)
+# Figure 4: Bar chart showing the percentage of deaths grouped by the number of days between positive test and death date (≤28, 29-60, >60 days)
+# Figure 5: Multiple graphs in one plot (side-by-side) ; standard versions of figures 2, 3a, 3b, and 4
+
+# C] Interactive and Standard Version of Figures 
+# Figures 1a, 1b, 3a, 3b, and 4 can have code to make them interactive
+    # interactive versions of each plot are defined by *_Interactive 
+    # eg Standard version of Figure 1a: cumPlot ; Interactive version of Figure 1a: cumPlot_Interactive
+# Figures 2 and 5 are not interactive 
+
 
 
 
@@ -20,20 +50,36 @@ library(ggplot2)
 install.packages("data.table")
 library(data.table)
 
-#scales (within ggplot2)
+# scales (within ggplot2)
 #to customise dates (x-axis) in ggplot
 library(scales)
 
-#plotly
+# plotly
 #to make plots interactive
 install.packages("plotly")
 library(plotly)
 
+# gridExtra
+#to assemble multiple plots on a page
+install.packages("gridExtra")
+library(gridExtra)
+
+# grid
+#to be able to change the main title of multiple plots after using gridExtra
+
+install.packages("grid")
+library(grid)
+
 #____________________________________________________________________________________________________________________________
 #### 1) loading data from UK Government Website (https://coronavirus.data.gov.uk/details/download) ####
+## rows (number increases over time): dates of deaths
+## columns (8): date, areaType, areaCode, areaName, cumDeaths28DaysByDeathDate, cumDeaths60DaysByDeathDate, newDeathsByDeathDate, cumDeathsByDeathDate
+## cumDeaths28DaysByDeathDate: cummulative number of people who died within 28 days of testing postive 
+## cumDeaths60DaysByDeathDate: cummulative number of people who died within 60 days of testing postive
+## cumDeathsByDeathDate: cummulative number of people who died within unlimited number of days after testing postive (within 60+ days)
 
 en_deathsData <- read.csv("https://api.coronavirus.data.gov.uk/v2/data?areaType=nation&areaCode=E92000001&metric=cumDeaths28DaysByDeathDate&metric=cumDeaths60DaysByDeathDate&metric=newDeathsByDeathDate&metric=cumDeathsByDeathDate&format=csv")
-
+ncol(en_deathsData)
 
 
 #____________________________________________________________________________________________________________________________
@@ -85,7 +131,7 @@ en_deathsData <- en_deathsData[order(as.Date(en_deathsData$date, format = "%Y-%m
 
 
 #____________________________________________________________________________________________________________________________
-#### 4) Group death values into day windows (within 28 days, 29 to 60 days, 60+ days of +ve test) ####
+#### 4) Group death values into day windows (deaths within 28 days, deaths between 29 and 60 days, deaths after 60 days of +ve test) ####
 
 deathsWithin28days <- en_deathsData$newDeaths28DaysByDeathDate
 deathsBetween29to60days <- en_deathsData$newDeaths60DaysByDeathDate - en_deathsData$newDeaths28DaysByDeathDate
@@ -97,9 +143,8 @@ en_deathsData <- cbind(en_deathsData, deathsWithin28days, deathsBetween29to60day
 
 
 #____________________________________________________________________________________________________________________________
-#### 5) Plotting data ####
+#### 5) PREPARING DATA FOR ggplot2 ####
 
-# PREPARING DATA FOR ggplot2
 # data.table package: convert en_deathsData from 'wide' data.frame to 'long'
 en_deathsData_long <- melt(setDT(en_deathsData), id.vars = c("date","areaType", "areaCode", "areaName"), variable.name = "deathMeasurementType")
 
@@ -107,6 +152,8 @@ en_deathsData_long <- melt(setDT(en_deathsData), id.vars = c("date","areaType", 
 en_deathsData_long$date <- as.Date(en_deathsData_long$date, format = "%Y-%m-%d")
 
 
+#____________________________________________________________________________________________________________________________
+#### 6) Plotting data ####
 
 #### FIGURE 1a ####
 ## Bar chart of cummulative deaths over time ##
@@ -163,12 +210,12 @@ cum_newPlot <- ggplot(data = en_deathsData, aes(x = date)) +
   geom_line(aes(y = cumDeathsByDeathDate / 75, color = "#e52b50")) +
   scale_y_continuous(name = "Number of Daily Deaths", sec.axis = sec_axis(trans = ~.*75, name = "Number of Total Deaths")) +
   labs(x=("Death Date")) +
-  ggtitle("Daily and Total Number of Deaths by Date") +
+  ggtitle(label = "Daily and Total Number of Deaths", subtitle = "by Death Date") +
   scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
-  theme(legend.position = "bottom", legend.box = "horizontal") +
+  theme(legend.position = "right", legend.box = "vertical", legend.title=element_blank(), plot.title = element_text(face = "bold"), axis.title = element_text(face = "bold")) +
   scale_fill_manual(values = "#69b3a2", labels = "Daily Deaths") +
-  scale_colour_manual(values = "#e52b50", labels = "Total Deaths") +
-  theme(legend.title=element_blank(), plot.title = element_text(face = "bold"))
+  scale_colour_manual(values = "#e52b50", labels = "Total Deaths")
+
 
 print(cum_newPlot)
 
@@ -183,12 +230,14 @@ windowData <- subset(en_deathsData_long, deathMeasurementType == "deathsWithin28
 # plot data with ggplot2 package
 windowBarPlot<- ggplot(windowData, aes(x = date, y = value, fill = deathMeasurementType, group = deathMeasurementType, text = paste(deathMeasurementType, "\n Date:", date, "\n Value:", value))) + 
   geom_bar(position="stack", stat="identity") +
-  ggtitle("Number of daily deaths grouped by length of time from testing positive until death") +
+  ggtitle(label = "Number of daily deaths", subtitle = "by length of time from testing positive until death") +
   labs(x=("Date of Deaths"), y=("Number of Deaths")) + 
   scale_fill_discrete(name="\n Number of days \n after +ve Test",
                       breaks=c("deathsWithin28days", "deathsBetween29to60days", "deathsAfter60days"),
                       labels=c("≤28 Days", "29 to 60 Days", ">60 Days")) +
-  scale_x_date(date_breaks = "months", date_labels = "%b-%y")
+  scale_x_date(date_breaks = "months", date_labels = "%b-%y") +
+  theme(plot.title = element_text(face = "bold"), axis.title = element_text(face = "bold"))
+
 
 # ggplotly: making graph interactive
 windowBarPlotInteractive <- ggplotly(windowBarPlot, tooltip = "text")
@@ -204,7 +253,7 @@ print(windowBarPlotInteractive)
 
 
 #### FIGURE 3b ####
-## Stacked barch chart (≤28, 29-60, ≥60 days), PERCENTAGE ##
+## Stacked barch chart (≤28, 29-60, ≥60 days), PROPORTION ##
 # "Windows" data - Number of daily deaths grouped by length of time from testing positive until death (≤28, 29-60, ≥60 days) #
 
 # subset windows data
@@ -212,26 +261,27 @@ windowData <- subset(en_deathsData_long, deathMeasurementType == "deathsWithin28
 
 
 # plot data with ggplot2 package
-windowBarPlot<- ggplot(windowData, aes(x = date, y = value, fill = deathMeasurementType, group = deathMeasurementType, text = paste(deathMeasurementType, "\n Date:", date, "\n Value:", value))) + 
+proportion_windowBarPlot<- ggplot(windowData, aes(x = date, y = value, fill = deathMeasurementType, group = deathMeasurementType, text = paste(deathMeasurementType, "\n Date:", date, "\n Value:", value))) + 
   geom_bar(position="fill", stat="identity") +
-  ggtitle("Proportion of Daily Deaths Grouped by length of time from testing positive until death") +
-  labs(x=("Date of Deaths"), y=("Number of Deaths")) + 
+  ggtitle(label = "Proportion of Daily Deaths", subtitle = "by length of time from testing positive until death") +
+  labs(x=("Date of Deaths"), y=("Proportion of Deaths")) + 
   scale_fill_discrete(name="\n Number of days \n after +ve Test",
                       breaks=c("deathsWithin28days", "deathsBetween29to60days", "deathsAfter60days"),
                       labels=c("≤28 Days", "29 to 60 Days", ">60 Days")) +
-  scale_x_date(date_breaks = "months", date_labels = "%b-%y")
+  scale_x_date(date_breaks = "months", date_labels = "%b-%y") +
+  theme(plot.title = element_text(face = "bold"), axis.title = element_text(face = "bold"))
 
 
 # ggplotly: making graph interactive
-windowBarPlotInteractive <- ggplotly(windowBarPlot, tooltip = "text")
+proportion_windowBarPlotInteractive <- ggplotly(windowBarPlot, tooltip = "text")
 
 # changing legend names
-windowBarPlotInteractive$x$data[[1]]$name <- "≤28 Days"
-windowBarPlotInteractive$x$data[[2]]$name <- "29 to 60 Days"
-windowBarPlotInteractive$x$data[[3]]$name <- ">60 Days"
+proportion_windowBarPlotInteractive$x$data[[1]]$name <- "≤28 Days"
+proportion_windowBarPlotInteractive$x$data[[2]]$name <- "29 to 60 Days"
+proportion_windowBarPlotInteractive$x$data[[3]]$name <- ">60 Days"
 
 # print stacked bar plot
-print(windowBarPlotInteractive)
+print(proportion_windowBarPlotInteractive)
 
 
 
@@ -277,11 +327,11 @@ for (deathWindow in 1:length(deathWindows)) {
 
 # plotting the results
 percentage_totalDeathWindowsPlot <- ggplot(data = percentage_deathWindowsDF, aes(x = deathMeasurementType, y = percentage, fill = deathMeasurementType, text = paste("\n Percentage:", percentage))) +
-  geom_bar( stat="identity") +
-  scale_x_discrete(limits = c(deathWindows), breaks=c(deathWindows), labels=c("≤28", "29 to 60", "60+")) +
+  geom_bar(stat = "identity") +
+  #scale_x_discrete(limits = c(deathWindows), breaks=c(deathWindows), labels=c("≤28", "29 to 60", "60+")) +
   labs(x = "Number of Days Between Positive Test and Death Date", y = "Percentage of Deaths") +
-  ggtitle("Percentage of Deaths by Number of Days between Positive Test and Death Date") + 
-  theme(legend.position = "none", plot.title = element_text(face = "bold"), axis.title = element_text(face = "bold") )
+  ggtitle(label = "Percentage of Total Deaths", subtitle = "by length of time from testing positive until death") + 
+  theme(legend.position = "none", plot.title = element_text(face = "bold"), axis.title = element_text(face = "bold"))
 
 percentage_totalDeathWindowsPlot_Interactive <- ggplotly(percentage_totalDeathWindowsPlot, tooltip = "text")
 
@@ -289,6 +339,17 @@ print(percentage_totalDeathWindowsPlot_Interactive)
 
 
 
-# TODO: 
-# 1) match the colour schemes of all figures
-# 2) think about organising all figures into one document?
+#### FIGURE 5 ####
+## Multiple graphs in one plot (side-by-side) ; figures 2, 3a, 3b, and 4 ##
+
+combinedPlot <- grid.arrange(cum_newPlot, windowBarPlot, percentage_totalDeathWindowsPlot, percentage_windowBarPlot, top = textGrob("COVID-19 Deaths Graphs", ))
+
+print(combinedPlot)
+
+
+
+#### TODO: ####
+# 1) write code to simplify running each figure 
+    # --> using functions: one function to load the data, one to run the data manipulation, one to run the appropriate figure code
+# 2) figure out why percentage_windowBarPlot's colours don't match other plots
+
