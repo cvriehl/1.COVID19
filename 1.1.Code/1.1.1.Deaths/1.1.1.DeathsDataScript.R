@@ -3,7 +3,7 @@
 
 
 
-#___________________________________ 1.11 NEW DEATHS WITHIN 28 DAYS & 60 DAYS OF +VE TEST____________________________________
+#_________________________________________________ 1.1.1. DEATH DATA SCRIPT _________________________________________________
 
 
 
@@ -66,7 +66,6 @@ library(gridExtra)
 
 # grid
 #to be able to change the main title of multiple plots after using gridExtra
-
 install.packages("grid")
 library(grid)
 
